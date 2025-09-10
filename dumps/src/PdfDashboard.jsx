@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./App.css";
+import "./PdfDashboard.css"
 
 const API_URL = "http://localhost:5000/api/pdfs";
 const ITEMS_PER_PAGE = 12;
