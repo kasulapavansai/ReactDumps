@@ -1,0 +1,205 @@
+/* PdfDashboard.css — dashboard layout, controls, cards, modal, pagination */
+
+/* topbar & controls */
+.topbar {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.topbar h1 {
+  margin:0;
+  font-size:22px;
+  letter-spacing: -0.2px;
+}
+.controls {
+  display:flex;
+  gap:12px;
+  align-items:flex-end;
+}
+.control {
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-width:220px;
+}
+.control label {
+  font-size:12px;
+  color:var(--muted);
+}
+
+/* form elements (shared) */
+select, input[type="text"] {
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid #e6e9ef;
+  background: linear-gradient(180deg,#fff,#fbfdff);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset;
+  font-size:14px;
+  outline:none;
+}
+select:focus, input[type="text"]:focus {
+  box-shadow: 0 6px 18px rgba(14,165,164,0.08);
+  border-color: var(--accent);
+}
+
+/* clear button */
+.btn-clear {
+  background: transparent;
+  border: 1px solid #e6e9ef;
+  padding:8px 12px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:600;
+}
+.btn-clear:hover { background:#fbfbfb; }
+
+/* folder section */
+.folder-section {
+  margin-top:18px;
+  padding:14px;
+  border-radius:12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.5));
+  border:1px solid rgba(256,256,256,0.6);
+}
+.folder-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:10px;
+}
+.folder-header h2 { margin:0; font-size:18px; cursor:pointer; }
+.folder-stats { color:var(--muted); font-size:13px; }
+
+/* grid & card layout (3 columns default) */
+.grid {
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:14px;
+}
+
+/* sensible card aspect ratio variables and aspect-ratio usage */
+:root {
+  --card-aspect-desktop: 4 / 3;
+  --card-aspect-tablet: 4 / 3;
+  --card-aspect-mobile: 3 / 4;
+  --card-min-height: 120px;
+}
+
+.card {
+  background: var(--card);
+  border-radius:12px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  min-height:var(--card-min-height);
+  box-shadow: 0 6px 18px rgba(12,18,28,0.06);
+  border: 1px solid #eef2f6;
+  cursor:pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+  aspect-ratio: var(--card-aspect-desktop);
+}
+.card:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(12,18,28,0.10); }
+.card-title { font-weight:600; font-size:15px; margin-bottom:8px; color:#09203f; }
+.card-sub { color: var(--muted); font-size:13px; }
+
+/* card footer and view button */
+.card-footer { display:flex; justify-content:flex-end; margin-top:12px; }
+.btn-view {
+  background: linear-gradient(90deg,var(--accent), var(--accent-2));
+  color:white;
+  padding:8px 12px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+}
+.btn-view:hover { opacity:0.95; transform: translateY(-1px); }
+
+/* pagination */
+.pagination {
+  margin-top:14px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:12px;
+}
+.pagination button {
+  padding:8px 12px;
+  border-radius:10px;
+  border:1px solid #e6e9ef;
+  background:white;
+  cursor:pointer;
+}
+.pagination span { color:var(--muted); font-weight:600; }
+
+/* modal viewer used on dashboard (if used) */
+.modal {
+  position:fixed;
+  inset:0;
+  background: rgba(2,6,23,0.6);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:60;
+  padding:28px;
+}
+.modal-content {
+  width:85%;
+  height:85%;
+  background: white;
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow: 0 24px 60px rgba(2,6,23,0.6);
+  display:flex;
+  flex-direction:column;
+}
+.modal-header { display:flex; justify-content:flex-end; padding:8px; }
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size:20px;
+  cursor:pointer;
+  padding:6px 10px;
+  border-radius:8px;
+}
+.modal-close:hover { background:#f3f4f6; }
+
+/* responsive: 3 -> 2 -> 1 columns and card aspect adjustments */
+@media (max-width: 980px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+  .card { aspect-ratio: var(--card-aspect-tablet); }
+  .controls { flex-direction:column; align-items:flex-start; gap:10px; }
+  .container { padding: 18px; }
+}
+@media (max-width: 560px) {
+  .grid { grid-template-columns: 1fr; gap: 12px; }
+  .card {
+    aspect-ratio: var(--card-aspect-mobile);
+    padding: 12px;
+    border-radius: 10px;
+    min-height: 140px;
+  }
+  .controls { flex-direction:column; gap: 10px; align-items: stretch; }
+  .control { width: 100%; }
+  .topbar { align-items: flex-start; gap: 12px; }
+}
+
+/* small typographic truncation helper */
+.card-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  /* WebKit / Blink (Safari, Chrome, Edge, Opera) */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  /* Standard property for forward-compatibility */
+  line-clamp: 2;
+
+  /* Optional fallback if line-clamp isn’t supported */
+  max-height: calc(1.2em * 2); /* adjust 1.2em to your line-height */
+}
