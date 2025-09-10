@@ -76,7 +76,7 @@
   border:1px solid #eef2f6;
 }
 .viewer-iframe {
-  width:auto;
+  width:100%;
   height:100%;
   display:block;
   border:0;
