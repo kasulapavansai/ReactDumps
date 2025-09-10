@@ -18,6 +18,13 @@ export default function PdfViewerPage() {
     if (q) url = decodeURIComponent(q);
   }
 
+  const getDriveDownloadUrl = (url) => {
+  const match = url.match(/\/d\/(.+?)\//);
+  if (!match) return url; // fallback if pattern doesn't match
+  const fileId = match[1];
+  return `https://drive.google.com/uc?export=download&id=${fileId}`;
+  };
+
   // If still no url, show message
   if (!url) {
     return (
@@ -48,8 +55,8 @@ export default function PdfViewerPage() {
         </div>
 
         <div className="viewer-actions">
-          <a className="btn-outline" href={url.replace("/preview", "/uc?export=download")} target="_blank" rel="noopener noreferrer">Download</a>
-          <a className="btn-primary" href={url} target="_blank" rel="noopener noreferrer">Open in Drive</a>
+        <a className="btn-outline" href={getDriveDownloadUrl(url)} target="_blank" rel="noopener noreferrer"> Download</a>
+        <a className="btn-primary" href={url} target="_blank" rel="noopener noreferrer">Open in Drive</a>
         </div>
       </div>
 
