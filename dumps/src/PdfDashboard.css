@@ -203,3 +203,17 @@ select:focus, input[type="text"]:focus {
   /* Optional fallback if line-clamp isn’t supported */
   max-height: calc(1.2em * 2); /* adjust 1.2em to your line-height */
 }
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-img {
+  width: 100%;
+  height: auto;        /* keeps aspect ratio */
+  object-fit: contain; /* ensures full image fits inside */
+  max-height: 200px;   /* optional: restricts too tall images */
+}

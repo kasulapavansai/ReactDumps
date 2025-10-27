@@ -1,164 +1,193 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./App.css";
-import "./PdfDashboard.css"
+import "./PdfDashboard.css";
 
-const API_URL = "http://localhost:5000/api/pdfs";
+const API_URL = "http://localhost:5000/api/exams"; // ✅ use new backend
+
 const ITEMS_PER_PAGE = 12;
 
 export default function PdfDashboard() {
   const navigate = useNavigate();
 
-  const [pdfData, setPdfData] = useState({});
+  const [examData, setExamData] = useState({});
   const [loading, setLoading] = useState(true);
-  const [selectedFolder, setSelectedFolder] = useState("");
-  const [selectedPdfUrl, setSelectedPdfUrl] = useState("");
+  const [selectedVendor, setSelectedVendor] = useState("");
+  const [selectedExam, setSelectedExam] = useState("");
   const [pages, setPages] = useState({});
-  const [folderOptions, setFolderOptions] = useState([]);
+  const [vendorOptions, setVendorOptions] = useState([]);
 
   useEffect(() => {
     setLoading(true);
     fetch(API_URL)
       .then((r) => r.json())
       .then((data) => {
-        const payload = data.pdfs || {};
-        setPdfData(payload);
+        setExamData(data || {});
+        setVendorOptions(Object.keys(data).sort());
 
         const initPages = {};
-        Object.keys(payload).forEach((f) => (initPages[f] = 1));
+        Object.keys(data).forEach((v) => (initPages[v] = 1));
         setPages(initPages);
-        setFolderOptions(Object.keys(payload).sort());
       })
       .catch((err) => {
-        console.error("Failed to load pdfs:", err);
-        setPdfData({});
+        console.error("Failed to load exams:", err);
+        setExamData({});
         setPages({});
-        setFolderOptions([]);
+        setVendorOptions([]);
       })
       .finally(() => setLoading(false));
   }, []);
 
   const clearFilters = () => {
-    setSelectedFolder("");
-    setSelectedPdfUrl("");
+    setSelectedVendor("");
+    setSelectedExam("");
     const reset = {};
-    Object.keys(pdfData).forEach((f) => (reset[f] = 1));
+    Object.keys(examData).forEach((v) => (reset[v] = 1));
     setPages(reset);
   };
 
-  const pdfOptionsForSelectedFolder = selectedFolder
-    ? (pdfData[selectedFolder] || []).map((p) => ({ name: p.name, url: p.url }))
-    : [];
+  // ✅ Exams for selected vendor
+  const examsForVendor = (vendor) => {
+    const examsObj = examData[vendor] || {};
+    return Object.entries(examsObj).map(([examName, details]) => ({
+      name: examName,
+      imagepath: details?.Imagepath || "",
+    }));
+  };
 
-  const getDisplayedPdfsForFolder = (folder) => {
-    let list = (pdfData[folder] || []).slice();
-    if (selectedPdfUrl) list = list.filter((p) => p.url === selectedPdfUrl);
+  const filteredExamsForVendor = (vendor) => {
+    let list = examsForVendor(vendor);
+    if (selectedExam) list = list.filter((e) => e.name === selectedExam);
     return list;
   };
 
-  const currentPageFor = (folder) => pages[folder] || 1;
-  const setPageFor = (folder, nextPage) =>
-    setPages((prev) => ({ ...prev, [folder]: nextPage }));
+  const currentPageFor = (vendor) => pages[vendor] || 1;
+  const setPageFor = (vendor, nextPage) =>
+    setPages((prev) => ({ ...prev, [vendor]: nextPage }));
 
-  const handleFolderChange = (e) => {
+  const handleVendorChange = (e) => {
     const val = e.target.value;
-    setSelectedFolder(val);
-    setSelectedPdfUrl("");
+    setSelectedVendor(val);
+    setSelectedExam("");
     setPages((prev) => ({ ...prev, [val]: prev[val] || 1 }));
   };
 
-  const handlePdfChange = (e) => {
-    setSelectedPdfUrl(e.target.value);
+  const handleExamChange = (e) => {
+    setSelectedExam(e.target.value);
     const reset = {};
-    Object.keys(pdfData).forEach((f) => (reset[f] = 1));
+    Object.keys(examData).forEach((v) => (reset[v] = 1));
     setPages(reset);
   };
 
-  const openViewer = (pdf, folder) => {
-    // Navigate to /viewer with state (so back works). Also add url query fallback.
+  const openViewer = (exam, vendor) => {
     navigate("/viewer", {
-      state: { url: pdf.url, name: pdf.name, folder },
+      state: { name: exam.name, vendor },
       replace: false,
-      search: `?url=${encodeURIComponent(pdf.url)}`, // helps refresh fallback
     });
   };
 
   if (loading) {
-    return <div className="container"><h2>Loading PDFs…</h2></div>;
+    return (
+      <div className="container">
+        <h2>Loading Exams…</h2>
+      </div>
+    );
   }
 
-  const foldersToShow = selectedFolder ? [selectedFolder] : folderOptions;
+  const vendorsToShow = selectedVendor ? [selectedVendor] : vendorOptions;
 
   return (
     <div className="container">
       <header className="topbar">
-        <h1>PDF Library</h1>
+        <h1>Exam Library</h1>
         <div className="controls">
           <div className="control">
-            <label>Folder</label>
-            <select value={selectedFolder} onChange={handleFolderChange}>
-              <option value="">All Folders</option>
-              {folderOptions.map((f) => (
-                <option key={f} value={f}>{f}</option>
+            <label>Vendor</label>
+            <select value={selectedVendor} onChange={handleVendorChange}>
+              <option value="">All Vendors</option>
+              {vendorOptions.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="control">
-            <label>PDF (folder-specific)</label>
+            <label>Exam (vendor-specific)</label>
             <select
-              value={selectedPdfUrl}
-              onChange={handlePdfChange}
-              disabled={!selectedFolder}
+              value={selectedExam}
+              onChange={handleExamChange}
+              disabled={!selectedVendor}
             >
-              <option value="">All PDFs</option>
-              {pdfOptionsForSelectedFolder.map((p) => (
-                <option key={p.url} value={p.url}>{p.name}</option>
+              <option value="">All Exams</option>
+              {examsForVendor(selectedVendor).map((exam) => (
+                <option key={exam.name} value={exam.name}>
+                  {exam.name}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="control">
-            <button className="btn-clear" onClick={clearFilters}>Clear Filters</button>
+            <button className="btn-clear" onClick={clearFilters}>
+              Clear Filters
+            </button>
           </div>
         </div>
       </header>
 
       <main>
-        {foldersToShow.length === 0 ? (
-          <p className="empty">No folders found.</p>
+        {vendorsToShow.length === 0 ? (
+          <p className="empty">No vendors found.</p>
         ) : (
-          foldersToShow.map((folder) => {
-            const allPdfs = getDisplayedPdfsForFolder(folder);
-            const page = currentPageFor(folder);
+          vendorsToShow.map((vendor) => {
+            const allExams = filteredExamsForVendor(vendor);
+            const page = currentPageFor(vendor);
             const start = (page - 1) * ITEMS_PER_PAGE;
             const end = start + ITEMS_PER_PAGE;
-            const pageSlice = allPdfs.slice(start, end);
+            const pageSlice = allExams.slice(start, end);
 
             return (
-              <section key={folder} className="folder-section">
+              <section key={vendor} className="folder-section">
                 <div className="folder-header">
-                  <h2>📂 {folder}</h2>
+                  <h2>🏢 {vendor}</h2>
                   <div className="folder-stats">
-                    <span>{allPdfs.length} item(s)</span>
+                    <span>{allExams.length} exam(s)</span>
                   </div>
                 </div>
 
-                {allPdfs.length === 0 ? (
-                  <p className="empty">No PDFs in this folder.</p>
+                {allExams.length === 0 ? (
+                  <p className="empty">No Exams for this vendor.</p>
                 ) : (
                   <>
                     <div className="grid">
-                      {pageSlice.map((pdf) => (
-                        <article key={pdf.url} className="card" onClick={() => openViewer(pdf, folder)}>
+                      {pageSlice.map((exam) => (
+                        <article
+                          key={exam.name}
+                          className="card"
+                          onClick={() => openViewer(exam, vendor)}
+                        >
                           <div className="card-body">
-                            <div className="card-title">{pdf.name}</div>
-                            <div className="card-sub"><small>{folder}</small></div>
+                            <div className="card-title">{exam.name}</div>
+                            <div className="card-sub">
+                              <small>{vendor}</small>
+                            </div>
+
+                            <img
+                              src={exam.imagepath || "/placeholder.png"}
+                              alt={exam.name}
+                              className="card-img"
+                            />
                           </div>
+
                           <div className="card-footer">
                             <button
                               className="btn-view"
-                              onClick={(ev) => { ev.stopPropagation(); openViewer(pdf, folder); }}
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                openViewer(exam, vendor);
+                              }}
                             >
                               View
                             </button>
@@ -167,11 +196,36 @@ export default function PdfDashboard() {
                       ))}
                     </div>
 
-                    {allPdfs.length > ITEMS_PER_PAGE && (
+                    {allExams.length > ITEMS_PER_PAGE && (
                       <div className="pagination">
-                        <button onClick={() => setPageFor(folder, Math.max(1, page - 1))} disabled={page === 1}>Prev</button>
-                        <span>Page {page} of {Math.ceil(allPdfs.length / ITEMS_PER_PAGE)}</span>
-                        <button onClick={() => setPageFor(folder, Math.min(Math.ceil(allPdfs.length / ITEMS_PER_PAGE), page + 1))} disabled={page >= Math.ceil(allPdfs.length / ITEMS_PER_PAGE)}>Next</button>
+                        <button
+                          onClick={() =>
+                            setPageFor(vendor, Math.max(1, page - 1))
+                          }
+                          disabled={page === 1}
+                        >
+                          Prev
+                        </button>
+                        <span>
+                          Page {page} of{" "}
+                          {Math.ceil(allExams.length / ITEMS_PER_PAGE)}
+                        </span>
+                        <button
+                          onClick={() =>
+                            setPageFor(
+                              vendor,
+                              Math.min(
+                                Math.ceil(allExams.length / ITEMS_PER_PAGE),
+                                page + 1
+                              )
+                            )
+                          }
+                          disabled={
+                            page >= Math.ceil(allExams.length / ITEMS_PER_PAGE)
+                          }
+                        >
+                          Next
+                        </button>
                       </div>
                     )}
                   </>

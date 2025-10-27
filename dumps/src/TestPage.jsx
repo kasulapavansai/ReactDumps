@@ -1,42 +1,18 @@
-// src/PdfViewerPage.jsx
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { UserAuth } from "./Components/AuthContext";
-import "./PdfViewerPage.css";
+import "./TestPage.css";
 
-export default function PdfViewerPage() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { session } = UserAuth();
-  const { name: examName, vendor } = location.state || {};
-
+export default function TestPage() {
   const [questions, setQuestions] = useState([]);
   const [page, setPage] = useState(0);
   const [aiResponses, setAiResponses] = useState({});
   const [loadingAI, setLoadingAI] = useState({});
-  const [revealedAnswers, setRevealedAnswers] = useState({});
-  const [selectedAnswers, setSelectedAnswers] = useState({});
-  const [loadingQuestions, setLoadingQuestions] = useState(true);
+  const [revealedAnswers, setRevealedAnswers] = useState({}); // map qId -> true/false
+  const [selectedAnswers, setSelectedAnswers] = useState({}); // map qId -> letter selected by user
   const pageSize = 3;
 
-  // Force login if user navigates beyond 3 pages
   useEffect(() => {
-    if (page >= 3 && !session) {
-      alert("Please sign in to continue accessing more pages.");
-      navigate("/signin");
-    }
-  }, [page, session, navigate]);
-
-  // Fetch questions
-  useEffect(() => {
-    if (!vendor || !examName) return;
-
-    setLoadingQuestions(true);
-
     fetch(
-      `http://localhost:5000/api/exam?vendor=${encodeURIComponent(
-        vendor
-      )}&exam=${encodeURIComponent(examName)}`
+      "http://localhost:5000/api/exam?folder=AWS&exam=AWS Certified AI Practitioner AIF-C01"
     )
       .then((res) => {
         if (!res.ok) throw new Error("Network response was not ok");
@@ -51,26 +27,22 @@ export default function PdfViewerPage() {
             Answer: value.Answer || "",
             Explanation: value.Explanation || "",
             Vote_count: value.Vote_count || [],
-            discussion_count:
-              value.discussion_count || value.DiscussionCount || 0,
+            discussion_count: value.discussion_count || value.DiscussionCount || 0,
           }));
 
+          // SORT BY KEY (id) numerically when possible
           arr.sort((a, b) => {
             const na = parseInt(a.id, 10);
             const nb = parseInt(b.id, 10);
             if (!isNaN(na) && !isNaN(nb)) return na - nb;
-            return String(a.id).localeCompare(String(b.id), undefined, {
-              numeric: true,
-              sensitivity: "base",
-            });
+            return String(a.id).localeCompare(String(b.id), undefined, { numeric: true, sensitivity: "base" });
           });
 
           setQuestions(arr);
         }
       })
-      .catch((err) => console.error("Error fetching exam:", err))
-      .finally(() => setLoadingQuestions(false));
-  }, [vendor, examName]);
+      .catch((err) => console.error("Error fetching exam:", err));
+  }, []);
 
   const start = page * pageSize;
   const end = Math.min(start + pageSize, questions.length);
@@ -105,44 +77,57 @@ export default function PdfViewerPage() {
       if (data.status === "success") {
         setAiResponses((prev) => ({ ...prev, [qId]: data.response }));
       } else {
-        setAiResponses((prev) => ({
-          ...prev,
-          [qId]: "Error generating AI response",
-        }));
+        setAiResponses((prev) => ({ ...prev, [qId]: "Error generating AI response" }));
       }
     } catch (err) {
       console.error(err);
-      setAiResponses((prev) => ({
-        ...prev,
-        [qId]: "Error generating AI response",
-      }));
+      setAiResponses((prev) => ({ ...prev, [qId]: "Error generating AI response" }));
     } finally {
       setLoadingAI((prev) => ({ ...prev, [qId]: false }));
     }
   };
 
+  // toggle reveal/hide
   const toggleReveal = (qId) => {
-    setRevealedAnswers((prev) => {
-      const updated = { ...prev, [qId]: !prev[qId] };
-      if (!updated[qId]) {
-        setSelectedAnswers((selPrev) => ({ ...selPrev, [qId]: undefined }));
-      }
-      return updated;
-    });
+    setRevealedAnswers((prev) => ({ ...prev, [qId]: !prev[qId] }));
   };
 
+  // when user clicks an option: record selection and reveal answer
   const handleOptionClick = (qId, letter) => {
-    if (selectedAnswers[qId]) return; // prevent change after first selection
     setSelectedAnswers((prev) => ({ ...prev, [qId]: letter }));
     setRevealedAnswers((prev) => ({ ...prev, [qId]: true }));
   };
 
+  // helper to extract letters like "AD", "A,D", "ABD" -> ['A','D',...]
   const extractLetters = (s) => {
     if (!s) return [];
     const matches = s.toString().toUpperCase().match(/[A-Z]/g);
     return matches ? [...new Set(matches)] : [];
   };
 
+  // aggregated per-option vote counts
+  const computeVotesForQuestion = (q) => {
+    const perOptionVotes = {};
+    Object.keys(q.Options || {}).forEach((k) => {
+      perOptionVotes[String(k).trim().toUpperCase()] = 0;
+    });
+
+    if (Array.isArray(q.Vote_count)) {
+      q.Vote_count.forEach((entry) => {
+        const letters = extractLetters(entry.voted_answers);
+        const count = Number(entry.vote_count) || 0;
+        letters.forEach((L) => {
+          if (!perOptionVotes.hasOwnProperty(L)) perOptionVotes[L] = 0;
+          perOptionVotes[L] += count;
+        });
+      });
+    }
+
+    const totalVotes = Object.values(perOptionVotes).reduce((s, v) => s + v, 0);
+    return { perOptionVotes, totalVotes };
+  };
+
+  // combo-level grouping for stacked community distribution
   const computeComboVotes = (q) => {
     const comboMap = {};
     if (Array.isArray(q.Vote_count)) {
@@ -155,54 +140,36 @@ export default function PdfViewerPage() {
     }
     const total = Object.values(comboMap).reduce((s, v) => s + v, 0);
     const combos = Object.entries(comboMap)
-      .map(([k, v]) => ({
-        combo: k,
-        count: v,
-        percent: total > 0 ? Math.round((v / total) * 100) : 0,
-      }))
+      .map(([k, v]) => ({ combo: k, count: v, percent: total > 0 ? Math.round((v / total) * 100) : 0 }))
       .sort((a, b) => b.count - a.count);
     return { combos, total };
   };
 
-  const palette = [
-    "#2d9cdb",
-    "#27ae60",
-    "#f39c12",
-    "#8e44ad",
-    "#e74c3c",
-    "#16a085",
-  ];
-
-  if (loadingQuestions) {
-    return (
-      <div className="test-page">
-        <h2>Loading questions...</h2>
-      </div>
-    );
-  }
+  // small palette for stacked segments
+  const palette = ["#2d9cdb", "#27ae60", "#f39c12", "#8e44ad", "#e74c3c", "#16a085"];
 
   return (
     <div className="test-page">
-      <h2>
-        {vendor} - {examName}
-      </h2>
+      <h2>AWS SAACO2 Exam - Test Mode</h2>
       <p className="total-questions">Total Questions: {questions.length}</p>
 
       {visibleQuestions.map((q, idx) => {
         const isRevealed = !!revealedAnswers[q.id];
-        const userSelected = selectedAnswers[q.id];
 
-        const mostVotedSet = new Set(
+        // most-voted letters (from Vote_count entries where is_most_voted true) if any
+        const mostVotedEntries =
           Array.isArray(q.Vote_count) && q.Vote_count.length
-            ? q.Vote_count
-                .filter((v) => !!v.is_most_voted)
-                .flatMap((e) => extractLetters(e.voted_answers))
-            : extractLetters(q.Answer)
-        );
+            ? q.Vote_count.filter((v) => !!v.is_most_voted)
+            : [];
+        const mostVotedSet = new Set(mostVotedEntries.flatMap((e) => extractLetters(e.voted_answers)));
 
-        const revealedLettersSet = isRevealed ? mostVotedSet : new Set();
+        // letters to highlight when revealed
+        const revealedLettersSet = isRevealed
+          ? (mostVotedSet.size > 0 ? mostVotedSet : new Set(extractLetters(q.Answer)))
+          : new Set();
 
-        const { combos } = computeComboVotes(q);
+        const { perOptionVotes, totalVotes } = computeVotesForQuestion(q);
+        const { combos, total: comboTotal } = computeComboVotes(q);
 
         return (
           <div key={q.id} className="question-card">
@@ -214,11 +181,16 @@ export default function PdfViewerPage() {
               {Object.entries(q.Options).map(([optKey, optValue]) => {
                 const letter = String(optKey).trim().toUpperCase();
                 const isRevealedOption = revealedLettersSet.has(letter);
-                const isSelected = userSelected === letter;
+                const showMostVoted = isRevealed && mostVotedSet.has(letter);
 
+                const userSelected = selectedAnswers[q.id];
+                const isSelected = userSelected === letter;
+                // selected + revealed correct -> selected-correct
+                // selected + revealed wrong -> selected-wrong
                 const liClass = [
                   "option",
                   isRevealedOption ? "revealed" : "",
+                  showMostVoted ? "most-voted" : "",
                   isSelected && isRevealedOption ? "selected-correct" : "",
                   isSelected && !isRevealedOption ? "selected-wrong" : "",
                 ]
@@ -233,21 +205,18 @@ export default function PdfViewerPage() {
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ")
-                        handleOptionClick(q.id, letter);
+                      if (e.key === "Enter" || e.key === " ") handleOptionClick(q.id, letter);
                     }}
                   >
                     <div className="option-content">
                       <b>{letter}:</b> {optValue}
+                      {showMostVoted && <span className="badge">Most Voted</span>}
                     </div>
 
+                    {/* feedback for user's selection */}
                     {isSelected && isRevealed && (
                       <div className="selection-feedback">
-                        {isRevealedOption ? (
-                          <span className="correct-text">Correct</span>
-                        ) : (
-                          <span className="incorrect-text">Incorrect</span>
-                        )}
+                        {isRevealedOption ? <span className="correct-text">Correct</span> : <span className="incorrect-text">Incorrect</span>}
                       </div>
                     )}
                   </li>
@@ -255,6 +224,8 @@ export default function PdfViewerPage() {
               })}
             </ul>
 
+            {/* community distribution: below options, above reveal button.
+                Only displayed after reveal (isRevealed === true). */}
             {isRevealed && (
               <div className="community-section">
                 <div className="comm-label">Community vote distribution</div>
@@ -275,9 +246,7 @@ export default function PdfViewerPage() {
                             }}
                             title={`${c.combo} (${c.percent}%) - ${c.count} votes`}
                           >
-                            {c.percent >= 8 ? (
-                              <span className="seg-label">{`${c.combo} (${c.percent}%)`}</span>
-                            ) : null}
+                            {c.percent >= 8 ? <span className="seg-label">{`${c.combo} (${c.percent}%)`}</span> : null}
                           </div>
                         );
                       })
@@ -287,10 +256,7 @@ export default function PdfViewerPage() {
                   <div className="stacked-legend">
                     {combos.map((c, i) => (
                       <div className="legend-item" key={c.combo}>
-                        <span
-                          className="legend-swatch"
-                          style={{ background: palette[i % palette.length] }}
-                        />
+                        <span className="legend-swatch" style={{ background: palette[i % palette.length] }} />
                         <span className="legend-text">{`${c.combo} (${c.percent}%)`}</span>
                       </div>
                     ))}
@@ -299,6 +265,7 @@ export default function PdfViewerPage() {
               </div>
             )}
 
+            {/* action buttons (Reveal/Hide + Generate AI) */}
             <div className="question-actions">
               <button onClick={() => toggleReveal(q.id)}>
                 {isRevealed ? "Hide Solution" : "Reveal Answer"}
@@ -309,13 +276,14 @@ export default function PdfViewerPage() {
               </button>
             </div>
 
+            {/* solution box (shows correct answer + explanation) - shown when revealed */}
             {isRevealed && (
               <div className="solution-box">
                 <div className="solution-top">
                   <div className="correct-answer">
                     <strong>Correct Answer:</strong>{" "}
                     <span className="correct-letters">
-                      {Array.from(mostVotedSet).join("")}
+                      {mostVotedSet.size > 0 ? Array.from(mostVotedSet).join("") : extractLetters(q.Answer).join("")}
                     </span>
                   </div>
                 </div>

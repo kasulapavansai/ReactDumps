@@ -1,0 +1,239 @@
+/* container + header */
+.assessment-container {
+  max-width: 980px;
+  margin: 28px auto;
+  padding: 18px;
+  font-family: Inter, Arial, sans-serif;
+  color: #222;
+}
+
+/* header */
+.assessment-header {
+  background: #222;
+  color: #fff;
+  padding: 14px;
+  border-radius: 8px;
+}
+
+.assessment-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 1.25rem;
+}
+
+/* ===== boxed controls: all controls inside one white card-like box ===== */
+.assessment-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+
+  /* box styling */
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+}
+
+/* each control column inside the boxed controls */
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  min-width: 120px;
+}
+
+/* inputs / selects / buttons inside the controls box */
+.control select,
+.control input[type="number"],
+.control button {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #cfcfcf;
+  background: #fff;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+/* match height for consistent appearance */
+.control select:focus,
+.control input[type="number"]:focus,
+.control button:focus {
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
+}
+
+/* primary action button style inside control */
+.control button {
+  background: #007bff;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+.control button:hover {
+  background: #0056b3;
+}
+
+/* meta display row below controls */
+.meta {
+  display: flex;
+  justify-content: space-between;
+  margin: 14px 0;
+  color: #333;
+}
+
+/* question card */
+.question-card {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 16px;
+  border: 1px solid #ececec;
+}
+
+/* options list */
+.options-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* base option style */
+.option {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  transition: all 0.12s ease;
+}
+
+/* hover for affordance */
+.option:hover {
+  background: #f5f5f5;
+}
+
+/* ------------------------------------------------------------
+   Selected BEFORE reveal: black outline box (user selection)
+   ------------------------------------------------------------ */
+.option.selected {
+  border-color: #000;                     /* black border */
+  box-shadow: 0 0 0 4px rgba(0,0,0,0.06); /* subtle ring */
+  background: #fff;                       /* keep white background */
+}
+
+/* focus state (keyboard) */
+.option:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
+}
+
+/* ------------------------------------------------------------
+   AFTER reveal / submission:
+   - correct -> green outline
+   - selected wrong -> red outline
+   ------------------------------------------------------------ */
+.option.revealed-correct {
+  border-color: #28a745;                   /* green border */
+  box-shadow: 0 0 0 4px rgba(40,167,69,0.06);
+  background: #fbfffb;
+  color: #175a2b;
+}
+
+.option.selected-wrong {
+  border-color: #dc3545;                   /* red border */
+  box-shadow: 0 0 0 4px rgba(220,53,69,0.06);
+  background: #fff7f7;
+  color: #721c24;
+}
+
+/* small badge for most-voted correct answers (visible on reveal) */
+.option .badge,
+.most-badge {
+  margin-left: 10px;
+  background: #e6f7ea;
+  color: #155724;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  border: 1px solid #28a745;
+}
+
+/* selection-feedback text (Correct / Incorrect text) */
+.selection-feedback {
+  margin-left: 12px;
+  font-weight: 600;
+}
+.correct-text { color: #1b7a3a; }
+.incorrect-text { color: #a12b2b; }
+
+/* pagination + buttons */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.pagination button {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  background: #007bff;
+  color: #fff;
+  cursor: pointer;
+}
+.pagination button:disabled {
+  background: #cfcfcf;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #333;
+}
+
+/* submit button */
+.actions { margin-top: 12px; }
+.submit-btn {
+  margin-top: 16px;
+  padding: 12px 18px;
+  border-radius: 8px;
+  border: none;
+  background: #28a745;
+  color: white;
+  cursor: pointer;
+}
+.submit-btn:hover { background: #218838; }
+
+/* result box */
+.result-box {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 8px;
+  background: #222;
+  color: #fff;
+  text-align: center;
+}
+
+/* explanation block under question */
+.explanation {
+  margin-top: 10px;
+  padding: 10px;
+  border-left: 4px solid #ececec;
+  background: #fff;
+  border-radius: 4px;
+}
+
+/* responsive */
+@media (max-width: 720px) {
+  .assessment-controls { gap: 8px; padding: 10px; }
+  .control select, .control button { width: 100%; }
+  .assessment-controls { flex-direction: column; align-items: stretch; }
+}
